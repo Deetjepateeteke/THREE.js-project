@@ -56,16 +56,16 @@
         return rowObj;
       }
 
-      function createCubeObj ({ obj, coords, parent }) {
+      function createCubeObj ({ coords, parent }) {
         // Create a cube-obj
         const cubeCopy = cube.clone();
         cubeCopy.position.set(coords, randomFloat(MIN_HEIGHT, MIN_HEIGHT+2), 0);
         
         const cubeObj = {
-          obj,
+          obj: cubeCopy,
           parent, // The row it is a child of
           coords, // the n-th cube of the row
-          height: obj.position.y,
+          height: cubeCopy.position.y,
           speed: randomFloat(MIN_SPEED, MAX_SPEED),
           motion: "up",
           updateHeight: function () {
@@ -117,7 +117,7 @@
         const row = createRowObj({ depth: i });
         for (let j = 0; j < N_X; j++) {
           // Create N_X cubes in every row
-          const cubeObj = createCubeObj({ obj: cubeCopy, coords: j, parent: row })
+          const cubeObj = createCubeObj({ coords: j, parent: row })
 
           // Add the cube to its corresponding row
           row.obj.add(cubeObj.obj);
