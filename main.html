@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Three.js</title>
+    <style> body { margin: 0; overflow: hidden; } </style>
+  </head>
+  <body>
+    <script type="module">
+      import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
+
+      // CONSTANTS
+      const N_X = 150; // amount of cubes on the x-axis
+      const N_Y = 100; // amount of cubes on the y-axis
+
+      const MIN_SPEED = 0.025; // the minimum speed of the cubes
+      const MAX_SPEED = 0.04; // the maximum speed of the cubes
+      const CUBE_SIZE = 1; // the width, height and depth of the cube
+
+      const MIN_HEIGHT = 0;
+      const MAX_HEIGHT = 2;
+
+      const randomFloat = function (min, max) {
+        return Math.random() * (max-min) + min;
+      };
+
+      const getLastRow = function () { // Get the last row from the cube-grid
+        let lastRow = 0;
+
+        for (let row of rows) {
+          if (row.obj.position.z < lastRow) {
+            lastRow = row.obj.position.z;
+          }
+        }
+
+        return lastRow;
+      };
+
+
+      function createRowObj ({ depth }) {
+        // Create a row-obj
+        const row = new THREE.Group();
+
+        const rowObj = {
+          obj: row, // THREE.Group obj
+          children: [], // the cubeObjs of the row
+          loop: function () {
+            // Infinite loop
+            if (this.obj.position.z > camera.position.z) {
+              this.obj.position.z = getLastRow() - 1;
+            }
+          }
+        };
+
+        rowObj.obj.position.z = depth;
+
+        return rowObj;
+      }
+
+      function createCubeObj ({ obj, coords, parent }) {
+        // Create a cube-obj
+        const cubeCopy = cube.clone();
+        cubeCopy.position.set(coords, randomFloat(MIN_HEIGHT, MIN_HEIGHT+2), 0);
+        
+        const cubeObj = {
+          obj,
+          parent, // The row it is a child of
+          coords, // the n-th cube of the row
+          height: obj.position.y,
+          speed: randomFloat(MIN_SPEED, MAX_SPEED),
+          motion: "up",
+          updateHeight: function () {
+            // Make the cube move between MIN_HEIGHT and MAX_HEIGHT
+
+            // Check if the height is in between MIN_HEIGHT and MAX_HEIGHT and change the motion accordingly
+            if (this.height >= MAX_HEIGHT) {
+              this.motion = "down";
+            } else if (this.height <= MIN_HEIGHT) {
+              this.motion = "up";
+            }
+
+            // Move the cube up or down accordingly to this.motion
+            if (this.motion === "up") {
+              this.obj.position.y += this.speed;
+            } else if (this.motion === "down") {
+              this.obj.position.y -= this.speed;
+            }
+            this.height = this.obj.position.y;
+          }
+        };
+        
+        return cubeObj;
+      }
+
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, N_Y);
+      camera.position.set(N_X/2, 7, N_Y+10);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(N_X/2, 10, 0);
+      scene.add(light);
+
+    
+      let rows = []; // The array containing every row and every row's cubes
+
+      const geometry = new THREE.BoxGeometry(CUBE_SIZE, MAX_HEIGHT-MIN_HEIGHT, CUBE_SIZE);
+      const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      const cube = new THREE.Mesh(geometry, material); // master THREE.Mesh-obj that is used for copies
+
+
+      for (let i = 0; i < N_Y; i++) {
+        // Create N_Y rows
+        const row = createRowObj({ depth: i });
+        for (let j = 0; j < N_X; j++) {
+          // Create N_X cubes in every row
+          const cubeObj = createCubeObj({ obj: cubeCopy, coords: j, parent: row })
+
+          // Add the cube to its corresponding row
+          row.obj.add(cubeObj.obj);
+          row.children.push(cubeObj)
+        }
+        // Add the row to the scene
+        scene.add(row.obj);
+        rows.push(row);
+      }
+
+      console.log(rows)
+
+      // Main animation loop
+      function animate () {
+        requestAnimationFrame(animate);
+
+        for (let row of rows) {
+          row.loop(); // Infinite loop
+
+          for (let cube of row.children) {
+            cube.updateHeight(); // Up and down motion
+          }
+        }
+        camera.position.z -= 0.5;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    </script>
+
+  </body>
+</html>
